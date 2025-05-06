@@ -21,8 +21,6 @@ public class EquipHideManager extends JavaPlugin {
     @Override
     public void onEnable() {
         protocolManager = ProtocolLibrary.getProtocolManager();
-
-        // 1. 다른 사람에게 방어구 안 보이게 하기
         protocolManager.addPacketListener(new PacketAdapter(this, PacketType.Play.Server.ENTITY_EQUIPMENT) {
             @Override
             public void onPacketSending(PacketEvent event) {
@@ -31,7 +29,10 @@ public class EquipHideManager extends JavaPlugin {
 
                 for (Pair<EnumWrappers.ItemSlot, ItemStack> pair : original) {
                     EnumWrappers.ItemSlot slot = pair.getFirst();
-                    if (isArmorSlot(slot)) {
+                    ItemStack item = pair.getSecond();
+                    if (slot == EnumWrappers.ItemSlot.CHEST && item.getType() == Material.ELYTRA) {
+                        modified.add(pair);
+                    } else if (isArmorSlot(slot)) {
                         modified.add(new Pair<>(slot, new ItemStack(Material.AIR)));
                     } else {
                         modified.add(pair);
@@ -41,45 +42,45 @@ public class EquipHideManager extends JavaPlugin {
                 event.getPacket().getSlotStackPairLists().write(0, modified);
             }
         });
-
-        // 2. 자기 자신 인벤토리에서 방어구 안 보이게 하기 (슬롯 단일 전송)
         protocolManager.addPacketListener(new PacketAdapter(this, PacketType.Play.Server.SET_SLOT) {
             @Override
             public void onPacketSending(PacketEvent event) {
-                int slot = event.getPacket().getIntegers().read(1); // 0: window id, 1: slot number
-                if (isArmorInventorySlot(slot)) {
+                int slot = event.getPacket().getIntegers().read(1);
+
+                if (isArmorInventorySlot(slot) && slot != 6) {
                     event.getPacket().getItemModifier().write(0, new ItemStack(Material.AIR));
                 }
             }
         });
-
-        // 3. 자기 자신 인벤토리 전체 초기화 시 방어구 안 보이게 하기
         protocolManager.addPacketListener(new PacketAdapter(this, PacketType.Play.Server.WINDOW_ITEMS) {
             @Override
             public void onPacketSending(PacketEvent event) {
                 int windowId = event.getPacket().getIntegers().read(0);
                 List<ItemStack> items = event.getPacket().getItemListModifier().read(0);
 
-                if (windowId == 0 && items.size() >= 39) { // 0 = player inventory
-                    List<ItemStack> modifiedItems = new ArrayList<>(items);
-                    modifiedItems.set(5, new ItemStack(Material.AIR)); // 머리
-                    modifiedItems.set(6, new ItemStack(Material.AIR)); // 흉갑
-                    modifiedItems.set(7, new ItemStack(Material.AIR)); // 레깅스
-                    modifiedItems.set(8, new ItemStack(Material.AIR)); // 부츠
-                    event.getPacket().getItemListModifier().write(0, modifiedItems);
+                if (windowId == 0 && items.size() >= 39) {
+                    List<ItemStack> modified = new ArrayList<>(items);
+                    modified.set(5, new ItemStack(Material.AIR)); // 머리
+                    if (items.get(6).getType() != Material.ELYTRA) {
+                        modified.set(6, new ItemStack(Material.AIR)); // 흉갑 (겉날개는 유지)
+                    }
+                    modified.set(7, new ItemStack(Material.AIR)); // 다리
+                    modified.set(8, new ItemStack(Material.AIR)); // 신발
+
+                    event.getPacket().getItemListModifier().write(0, modified);
                 }
             }
         });
 
-        getLogger().info("EquipHideManager Enabled");
+        getLogger().info("EquipHideManager enabled");
     }
 
     @Override
     public void onDisable() {
         if (protocolManager != null) {
             protocolManager.removePacketListeners(this);
-            getLogger().info("EquipHideManager Disabled");
         }
+        getLogger().info("EquipHideManager disabled");
     }
 
     private boolean isArmorSlot(EnumWrappers.ItemSlot slot) {
@@ -90,6 +91,6 @@ public class EquipHideManager extends JavaPlugin {
     }
 
     private boolean isArmorInventorySlot(int slot) {
-        return slot >= 5 && slot <= 8; // 머리, 흉갑, 레깅스, 부츠 슬롯
+        return slot >= 5 && slot <= 8;
     }
 }
