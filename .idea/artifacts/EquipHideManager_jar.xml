@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="EquipHideManager:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/EquipHideManager_jar</output-path>
+    <root id="archive" name="EquipHideManager.jar">
+      <element id="module-output" name="EquipHideManager" />
+    </root>
+  </artifact>
+</component>

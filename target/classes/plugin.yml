@@ -1,0 +1,6 @@
+name: EquipHideManager
+version: 1.0-SNAPSHOT
+main: com.gmail.bobason01.EquipHideManager
+api-version: 1.13
+author: crston
+description: Player skins stand out when armor is not visible
